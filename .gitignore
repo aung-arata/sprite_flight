@@ -1,0 +1,40 @@
+# Unity generated folders (do NOT commit)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild*/
+Build/
+Logs/
+MemoryCaptures/
+UserSettings/
+
+# Auto-generated project/IDE files (do NOT commit)
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+
+# IDE/editor folders
+.vscode/
+.idea/
+.vs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs and packages you don't want tracked
+*.apk
+*.aab
+*.unitypackage
+
+# Unity cache and metadata
+sysinfo.txt
+
+# Optional: add large binary types to Git LFS instead of normal git
+# Example: *.psd filter=lfs diff=lfs merge=lfs -text
