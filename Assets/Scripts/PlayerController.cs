@@ -49,10 +49,28 @@ public class PlayerController : MonoBehaviour
     }
 
     void MovePlayer() {
+        bool isInputActive = false;
+        Vector2 inputPosition = Vector2.zero;
+
+        // Check for mouse input (for PC/editor testing)
         if(Mouse.current.leftButton.isPressed)
         {
+            isInputActive = true;
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.value);
-            Vector2 direction = (mousePos - transform.position).normalized;
+            inputPosition = mousePos;
+        }
+        // Check for touch input (for mobile)
+        else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
+        {
+            isInputActive = true;
+            Vector2 touchPos = Touchscreen.current.primaryTouch.position.ReadValue();
+            Vector3 worldPos = Camera.main.ScreenToWorldPoint(new Vector3(touchPos.x, touchPos.y, Camera.main.nearClipPlane));
+            inputPosition = worldPos;
+        }
+
+        if (isInputActive)
+        {
+            Vector2 direction = (inputPosition - transform.position).normalized;
             
             transform.up = direction;
             rb.AddForce(direction * thrustForce);
@@ -61,16 +79,21 @@ public class PlayerController : MonoBehaviour
             {
                 rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
             }
-        }
 
-        // if (Mouse.current.leftButton.wasPressedThisFrame)
-        // {
-        //     boosterFlame.SetActive(true);
-        // }
-        // else if (Mouse.current.leftButton.wasReleasedThisFrame)
-        // {
-        //     boosterFlame.SetActive(false);
-        // }
+            // Show booster flame when input is active
+            if (boosterFlame != null)
+            {
+                boosterFlame.SetActive(true);
+            }
+        }
+        else
+        {
+            // Hide booster flame when no input
+            if (boosterFlame != null)
+            {
+                boosterFlame.SetActive(false);
+            }
+        }
     }
 
     void OnCollisionEnter2D(Collision2D collision)
