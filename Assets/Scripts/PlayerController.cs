@@ -48,11 +48,50 @@ public class PlayerController : MonoBehaviour
         // Debug.Log("Score: " + score);
     }
 
+    // Cached camera reference for performance
+    private Camera mainCamera;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+
+        scoreText = uiDocument.rootVisualElement.Q<Label>("ScoreLabel");
+        restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
+        restartButton.style.display = DisplayStyle.None;
+
+        restartButton.clicked += ReloadScene;
+        
+        // Cache camera reference
+        mainCamera = Camera.main;
+    }
+
     void MovePlayer() {
-        if(Mouse.current.leftButton.isPressed)
+        bool isInputActive = false;
+        Vector2 inputPosition = Vector2.zero;
+        
+        // Cache the player's screen position z-depth for consistent world position conversion
+        float screenPosZ = mainCamera != null ? mainCamera.WorldToScreenPoint(transform.position).z : 0f;
+
+        // Check for mouse input (for PC/editor testing) - with null safety
+        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
         {
-            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.value);
-            Vector2 direction = (mousePos - transform.position).normalized;
+            isInputActive = true;
+            Vector2 mousePos = Mouse.current.position.ReadValue();
+            Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, screenPosZ));
+            inputPosition = worldPos;
+        }
+        // Check for touch input (for mobile)
+        else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
+        {
+            isInputActive = true;
+            Vector2 touchPos = Touchscreen.current.primaryTouch.position.ReadValue();
+            Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(touchPos.x, touchPos.y, screenPosZ));
+            inputPosition = worldPos;
+        }
+
+        if (isInputActive)
+        {
+            Vector2 direction = (inputPosition - (Vector2)transform.position).normalized;
             
             transform.up = direction;
             rb.AddForce(direction * thrustForce);
@@ -61,16 +100,21 @@ public class PlayerController : MonoBehaviour
             {
                 rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
             }
-        }
 
-        // if (Mouse.current.leftButton.wasPressedThisFrame)
-        // {
-        //     boosterFlame.SetActive(true);
-        // }
-        // else if (Mouse.current.leftButton.wasReleasedThisFrame)
-        // {
-        //     boosterFlame.SetActive(false);
-        // }
+            // Show booster flame when input is active
+            if (boosterFlame != null)
+            {
+                boosterFlame.SetActive(true);
+            }
+        }
+        else
+        {
+            // Hide booster flame when no input
+            if (boosterFlame != null)
+            {
+                boosterFlame.SetActive(false);
+            }
+        }
     }
 
     void OnCollisionEnter2D(Collision2D collision)
