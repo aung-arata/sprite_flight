@@ -21,7 +21,9 @@ public class PlayerController : MonoBehaviour
     public GameObject explosionEffect;
     private Button restartButton;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    // Cached camera reference for performance
+    private Camera mainCamera;
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -31,46 +33,53 @@ public class PlayerController : MonoBehaviour
         restartButton.style.display = DisplayStyle.None;
 
         restartButton.clicked += ReloadScene;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        UpdateScore();
-        MovePlayer();
-    }
-
-    void UpdateScore() {
-        elapsedTime += Time.deltaTime;
-        score = Mathf.FloorToInt(elapsedTime * scoreMultiplier);
-
-        scoreText.text = "Score: " + score;
-        // Debug.Log("Score: " + score);
+        
+        // Cache camera reference
+        mainCamera = Camera.main;
     }
 
     void MovePlayer() {
         bool isInputActive = false;
         Vector2 inputPosition = Vector2.zero;
+        
+        // Handle case where mainCamera might be null
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+            if (mainCamera == null)
+            {
+                // No camera available, can't process input
+                if (boosterFlame != null)
+                {
+                    boosterFlame.SetActive(false);
+                }
+                return;
+            }
+        }
+        
+        // Cache the player's screen position z-depth for consistent world position conversion
+        float screenPosZ = mainCamera.WorldToScreenPoint(transform.position).z;
 
-        // Check for mouse input (for PC/editor testing)
-        if(Mouse.current.leftButton.isPressed)
+        // Check for mouse input (for PC/editor testing) - with null safety
+        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
         {
             isInputActive = true;
-            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.value);
-            inputPosition = mousePos;
+            Vector2 mousePos = Mouse.current.position.ReadValue();
+            Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, screenPosZ));
+            inputPosition = new Vector2(worldPos.x, worldPos.y);
         }
         // Check for touch input (for mobile)
         else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
         {
             isInputActive = true;
             Vector2 touchPos = Touchscreen.current.primaryTouch.position.ReadValue();
-            Vector3 worldPos = Camera.main.ScreenToWorldPoint(new Vector3(touchPos.x, touchPos.y, Camera.main.nearClipPlane));
-            inputPosition = worldPos;
+            Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(touchPos.x, touchPos.y, screenPosZ));
+            inputPosition = new Vector2(worldPos.x, worldPos.y);
         }
 
         if (isInputActive)
         {
-            Vector2 direction = (inputPosition - transform.position).normalized;
+            Vector2 direction = (inputPosition - (Vector2)transform.position).normalized;
             
             transform.up = direction;
             rb.AddForce(direction * thrustForce);
@@ -94,6 +103,21 @@ public class PlayerController : MonoBehaviour
                 boosterFlame.SetActive(false);
             }
         }
+    }
+
+    void UpdateScore() {
+        elapsedTime += Time.deltaTime;
+        score = Mathf.FloorToInt(elapsedTime * scoreMultiplier);
+
+        scoreText.text = "Score: " + score;
+        // Debug.Log("Score: " + score);
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        UpdateScore();
+        MovePlayer();
     }
 
     void OnCollisionEnter2D(Collision2D collision)
