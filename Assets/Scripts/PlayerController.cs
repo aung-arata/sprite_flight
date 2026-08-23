@@ -21,18 +21,6 @@ public class PlayerController : MonoBehaviour
     public GameObject explosionEffect;
     private Button restartButton;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-
-        scoreText = uiDocument.rootVisualElement.Q<Label>("ScoreLabel");
-        restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
-        restartButton.style.display = DisplayStyle.None;
-
-        restartButton.clicked += ReloadScene;
-    }
-
     // Update is called once per frame
     void Update()
     {

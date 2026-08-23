@@ -2,39 +2,72 @@
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
-[Bb]uild*/
-Build/
-Logs/
-MemoryCaptures/
-UserSettings/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+[Uu]serSettings/
+ExportedObj/
+UIElementsSchema/
+Assets/AssetStoreTools*
+Assets/Plugins/PlasticSCM*
 
 # Auto-generated project/IDE files (do NOT commit)
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.suo
 *.user
 *.userprefs
 *.pidb
 *.booproj
 *.svd
+*.tmp
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
 
 # IDE/editor folders
 .vscode/
 .idea/
 .vs/
+.plastic/
+.gradle/
+.consulo/
 
 # OS files
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Build outputs and packages you don't want tracked
 *.apk
 *.aab
+*.app
 *.unitypackage
 
 # Unity cache and metadata
 sysinfo.txt
+crashlytics-build.properties
+*.dmp
+~UnityDirMonSyncFile~*
+
+# Addressables-generated content
+Assets/AddressableAssetsData/*/*.bin*
+Assets/StreamingAssets/aa.meta
+Assets/StreamingAssets/aa/*
+
+# Project-local private files
+*.private
+*.private.meta
+*.private.[0-9]*
+*.private.[0-9]*.meta
 
 # Optional: add large binary types to Git LFS instead of normal git
 # Example: *.psd filter=lfs diff=lfs merge=lfs -text
