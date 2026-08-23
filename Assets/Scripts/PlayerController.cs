@@ -38,6 +38,11 @@ public class PlayerController : MonoBehaviour
 
     // Cached camera reference for performance
     private Camera mainCamera;
+    private int lastScreenWidth;
+    private int lastScreenHeight;
+
+    private const float ReferenceAspect = 16f / 9f;
+    private const float ReferenceOrthographicSize = 7f;
 
     void Start()
     {
@@ -51,9 +56,31 @@ public class PlayerController : MonoBehaviour
         
         // Cache camera reference
         mainCamera = Camera.main;
+        UpdateCameraForScreen();
+    }
+
+    void UpdateCameraForScreen()
+    {
+        if (mainCamera == null || Screen.width <= 0 || Screen.height <= 0)
+        {
+            return;
+        }
+
+        lastScreenWidth = Screen.width;
+        lastScreenHeight = Screen.height;
+
+        float currentAspect = (float)Screen.width / Screen.height;
+        mainCamera.orthographicSize = currentAspect < ReferenceAspect
+            ? ReferenceOrthographicSize * (ReferenceAspect / currentAspect)
+            : ReferenceOrthographicSize;
     }
 
     void MovePlayer() {
+        if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight)
+        {
+            UpdateCameraForScreen();
+        }
+
         bool isInputActive = false;
         Vector2 inputPosition = Vector2.zero;
         
