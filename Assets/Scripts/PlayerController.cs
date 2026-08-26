@@ -15,8 +15,8 @@ public class PlayerController : MonoBehaviour
 
     [Header("Difficulty")]
     [Min(1f)] public float difficultyInterval = 15f;
-    [Min(0f)] public float speedIncreasePerStage = 0.1f;
-    [Min(1f)] public float maxAsteroidSpeedMultiplier = 1.6f;
+    [Min(0f)] public float asteroidSpeedIncreasePerStage = 0.25f;
+    [Min(1f)] public float asteroidSpeedLimit = 2f;
     [Min(0f)] public float difficultyMessageDuration = 1.25f;
 
     Rigidbody2D rb;
@@ -124,8 +124,8 @@ public class PlayerController : MonoBehaviour
 
         difficultyStage = newStage;
         float newMultiplier = Mathf.Min(
-            1f + difficultyStage * speedIncreasePerStage,
-            Mathf.Max(1f, maxAsteroidSpeedMultiplier));
+            1f + difficultyStage * asteroidSpeedIncreasePerStage,
+            Mathf.Max(1f, asteroidSpeedLimit));
 
         if (newMultiplier <= asteroidSpeedMultiplier)
         {
@@ -134,9 +134,13 @@ public class PlayerController : MonoBehaviour
 
         asteroidSpeedMultiplier = newMultiplier;
 
+        Vector2 arenaCenter = mainCamera != null
+            ? (Vector2)mainCamera.transform.position
+            : Vector2.zero;
+
         foreach (Stone stone in FindObjectsByType<Stone>(FindObjectsSortMode.None))
         {
-            stone.SetSpeedMultiplier(asteroidSpeedMultiplier);
+            stone.SetSpeedMultiplier(asteroidSpeedMultiplier, arenaCenter);
         }
 
         if (difficultyMessageCoroutine != null)
@@ -149,6 +153,7 @@ public class PlayerController : MonoBehaviour
 
     IEnumerator ShowDifficultyMessage()
     {
+        difficultyText.text = $"Speed x{asteroidSpeedMultiplier:0.0}";
         difficultyText.style.display = DisplayStyle.Flex;
         yield return new WaitForSeconds(difficultyMessageDuration);
         difficultyText.style.display = DisplayStyle.None;

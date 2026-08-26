@@ -42,13 +42,33 @@ public class Stone : MonoBehaviour
         Destroy(bounceEffect, 1f);
     }
 
-    public void SetSpeedMultiplier(float newMultiplier)
+    public void SetSpeedMultiplier(float newMultiplier, Vector2 arenaCenter)
     {
         newMultiplier = Mathf.Max(1f, newMultiplier);
 
         if (rb != null && speedMultiplier > 0f)
         {
-            rb.linearVelocity *= newMultiplier / speedMultiplier;
+            Vector2 currentVelocity = rb.linearVelocity;
+            float newSpeed = currentVelocity.magnitude * (newMultiplier / speedMultiplier);
+            Vector2 currentDirection = currentVelocity.sqrMagnitude > 0.001f
+                ? currentVelocity.normalized
+                : Random.insideUnitCircle.normalized;
+            Vector2 directionToCenter = arenaCenter - (Vector2)transform.position;
+
+            if (directionToCenter.sqrMagnitude > 4f)
+            {
+                currentDirection = Vector2.Lerp(
+                    currentDirection,
+                    directionToCenter.normalized,
+                    0.6f).normalized;
+                currentDirection = Quaternion.Euler(
+                    0f,
+                    0f,
+                    Random.Range(-20f, 20f)) * currentDirection;
+            }
+
+            rb.linearVelocity = currentDirection * Mathf.Max(newSpeed, newMultiplier);
+            rb.WakeUp();
         }
 
         speedMultiplier = newMultiplier;
