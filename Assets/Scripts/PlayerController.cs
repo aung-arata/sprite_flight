@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -17,13 +18,36 @@ public class PlayerController : MonoBehaviour
     public UIDocument uiDocument;
 
     private Label scoreText;
+    private Label finalScoreText;
+    private Label bestScoreText;
+    private Label newBestText;
+    private VisualElement gameOverPanel;
 
     public GameObject explosionEffect;
     private Button restartButton;
 
+    private bool isGameOver;
+    private bool restartInputArmed;
+    private bool isReloading;
+
+    private const string BestScoreKey = "BestScore";
+    private const float ScreenShakeDuration = 0.25f;
+    private const float ScreenShakeMagnitude = 0.2f;
+
     // Update is called once per frame
     void Update()
     {
+        if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight)
+        {
+            UpdateCameraForScreen();
+        }
+
+        if (isGameOver)
+        {
+            HandleRestartInput();
+            return;
+        }
+
         UpdateScore();
         MovePlayer();
     }
@@ -58,8 +82,12 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
 
         scoreText = uiDocument.rootVisualElement.Q<Label>("ScoreLabel");
+        finalScoreText = uiDocument.rootVisualElement.Q<Label>("FinalScoreLabel");
+        bestScoreText = uiDocument.rootVisualElement.Q<Label>("BestScoreLabel");
+        newBestText = uiDocument.rootVisualElement.Q<Label>("NewBestLabel");
+        gameOverPanel = uiDocument.rootVisualElement.Q<VisualElement>("GameOverPanel");
         restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
-        restartButton.style.display = DisplayStyle.None;
+        gameOverPanel.style.display = DisplayStyle.None;
 
         restartButton.clicked += ReloadScene;
         
@@ -156,32 +184,30 @@ public class PlayerController : MonoBehaviour
     }
 
     void MovePlayer() {
-        if (Screen.width != lastScreenWidth || Screen.height != lastScreenHeight)
-        {
-            UpdateCameraForScreen();
-        }
-
-        bool isInputActive = false;
+        bool isInputActive = TryGetPointerScreenPosition(out Vector2 pointerPosition);
         Vector2 inputPosition = Vector2.zero;
-        
-        // Cache the player's screen position z-depth for consistent world position conversion
-        float screenPosZ = mainCamera != null ? mainCamera.WorldToScreenPoint(transform.position).z : 0f;
 
-        // Check for mouse input (for PC/editor testing) - with null safety
-        if (Mouse.current != null && Mouse.current.leftButton.isPressed)
+        if (isInputActive && mainCamera == null)
         {
-            isInputActive = true;
-            Vector2 mousePos = Mouse.current.position.ReadValue();
-            Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, screenPosZ));
-            inputPosition = worldPos;
+            isInputActive = false;
         }
-        // Check for touch input (for mobile)
-        else if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
+        else if (isInputActive)
         {
-            isInputActive = true;
-            Vector2 touchPos = Touchscreen.current.primaryTouch.position.ReadValue();
-            Vector3 worldPos = mainCamera.ScreenToWorldPoint(new Vector3(touchPos.x, touchPos.y, screenPosZ));
-            inputPosition = worldPos;
+            float screenPosZ = mainCamera.WorldToScreenPoint(transform.position).z;
+            pointerPosition.x = Mathf.Clamp(pointerPosition.x, 0f, Screen.width);
+            pointerPosition.y = Mathf.Clamp(pointerPosition.y, 0f, Screen.height);
+
+            Vector3 worldPosition = mainCamera.ScreenToWorldPoint(
+                new Vector3(pointerPosition.x, pointerPosition.y, screenPosZ));
+
+            if (IsFinite(worldPosition.x) && IsFinite(worldPosition.y))
+            {
+                inputPosition = worldPosition;
+            }
+            else
+            {
+                isInputActive = false;
+            }
         }
 
         if (isInputActive)
@@ -214,13 +240,150 @@ public class PlayerController : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D collision)
     {
-        Destroy(gameObject);
+        if (isGameOver)
+        {
+            return;
+        }
+
+        isGameOver = true;
+
+        int finalScore = Mathf.FloorToInt(score);
+        int previousBestScore = PlayerPrefs.GetInt(BestScoreKey, 0);
+        bool achievedNewBest = finalScore > previousBestScore;
+        int bestScore = achievedNewBest ? finalScore : previousBestScore;
+
+        if (achievedNewBest)
+        {
+            PlayerPrefs.SetInt(BestScoreKey, bestScore);
+            PlayerPrefs.Save();
+        }
+
+        finalScoreText.text = $"Score: {finalScore}";
+        bestScoreText.text = $"Best: {bestScore}";
+        newBestText.style.display = achievedNewBest ? DisplayStyle.Flex : DisplayStyle.None;
+        gameOverPanel.style.display = DisplayStyle.Flex;
+
+        restartInputArmed = !IsPointerPressed();
+
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
+        rb.simulated = false;
+
+        foreach (Collider2D playerCollider in GetComponentsInChildren<Collider2D>())
+        {
+            playerCollider.enabled = false;
+        }
+
+        foreach (SpriteRenderer playerRenderer in GetComponentsInChildren<SpriteRenderer>())
+        {
+            playerRenderer.enabled = false;
+        }
+
+        if (boosterFlame != null)
+        {
+            boosterFlame.SetActive(false);
+        }
+
         Instantiate(explosionEffect, transform.position, transform.rotation);
-        restartButton.style.display = DisplayStyle.Flex;
+        StartCoroutine(ShakeCamera());
+    }
+
+    void HandleRestartInput()
+    {
+        if (!IsPointerPressed())
+        {
+            restartInputArmed = true;
+            return;
+        }
+
+        if (restartInputArmed && WasPointerPressedThisFrame())
+        {
+            ReloadScene();
+        }
+    }
+
+    static bool TryGetPointerScreenPosition(out Vector2 screenPosition)
+    {
+        screenPosition = Vector2.zero;
+
+        // Device Simulator disables the native mouse and provides a simulated
+        // touchscreen, so touch must be checked before the mouse fallback.
+        if (Touchscreen.current != null &&
+            Touchscreen.current.enabled &&
+            Touchscreen.current.primaryTouch.press.isPressed)
+        {
+            screenPosition = Touchscreen.current.primaryTouch.position.ReadValue();
+            return IsFinite(screenPosition.x) && IsFinite(screenPosition.y);
+        }
+
+        if (Mouse.current != null &&
+            Mouse.current.enabled &&
+            Mouse.current.leftButton.isPressed)
+        {
+            screenPosition = Mouse.current.position.ReadValue();
+            return IsFinite(screenPosition.x) && IsFinite(screenPosition.y);
+        }
+
+        return false;
+    }
+
+    static bool IsFinite(float value)
+    {
+        return !float.IsNaN(value) && !float.IsInfinity(value);
+    }
+
+    static bool IsPointerPressed()
+    {
+        bool mousePressed = Mouse.current != null &&
+            Mouse.current.enabled &&
+            Mouse.current.leftButton.isPressed;
+        bool touchPressed = Touchscreen.current != null &&
+            Touchscreen.current.enabled &&
+            Touchscreen.current.primaryTouch.press.isPressed;
+        return mousePressed || touchPressed;
+    }
+
+    static bool WasPointerPressedThisFrame()
+    {
+        bool mousePressed = Mouse.current != null &&
+            Mouse.current.enabled &&
+            Mouse.current.leftButton.wasPressedThisFrame;
+        bool touchPressed = Touchscreen.current != null &&
+            Touchscreen.current.enabled &&
+            Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+        return mousePressed || touchPressed;
+    }
+
+    IEnumerator ShakeCamera()
+    {
+        if (mainCamera == null)
+        {
+            yield break;
+        }
+
+        Vector3 originalPosition = mainCamera.transform.localPosition;
+        float elapsed = 0f;
+
+        while (elapsed < ScreenShakeDuration)
+        {
+            float strength = 1f - elapsed / ScreenShakeDuration;
+            Vector2 offset = Random.insideUnitCircle * (ScreenShakeMagnitude * strength);
+            mainCamera.transform.localPosition = originalPosition + new Vector3(offset.x, offset.y, 0f);
+            elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        mainCamera.transform.localPosition = originalPosition;
     }
 
     void ReloadScene()
     {
+        if (isReloading)
+        {
+            return;
+        }
+
+        isReloading = true;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
