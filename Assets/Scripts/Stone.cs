@@ -9,6 +9,12 @@ public class Stone : MonoBehaviour
     public float maxSpinSpeed = 10f;
     Rigidbody2D rb;
     private float speedMultiplier = 1f;
+    private float baseMovementSpeed;
+    private Vector2 lastMovementDirection = Vector2.right;
+    private bool hasBaseMovementSpeed;
+
+    private const float MinimumVelocitySqrMagnitude = 0.001f;
+    private const float MinimumBaseMovementSpeed = 1f;
 
     public GameObject bounceEffectPrefab;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -27,10 +33,31 @@ public class Stone : MonoBehaviour
         // rb.AddTorque(randomTorque);
     }
 
-    // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
-        
+        if (rb == null)
+        {
+            return;
+        }
+
+        Vector2 currentVelocity = rb.linearVelocity;
+        if (currentVelocity.sqrMagnitude > MinimumVelocitySqrMagnitude)
+        {
+            lastMovementDirection = currentVelocity.normalized;
+
+            if (!hasBaseMovementSpeed)
+            {
+                baseMovementSpeed = Mathf.Max(
+                    currentVelocity.magnitude / speedMultiplier,
+                    MinimumBaseMovementSpeed);
+                hasBaseMovementSpeed = true;
+            }
+        }
+
+        if (hasBaseMovementSpeed)
+        {
+            rb.linearVelocity = lastMovementDirection * (baseMovementSpeed * speedMultiplier);
+        }
     }
 
     void OnCollisionEnter2D(Collision2D collision)
@@ -49,10 +76,18 @@ public class Stone : MonoBehaviour
         if (rb != null && speedMultiplier > 0f)
         {
             Vector2 currentVelocity = rb.linearVelocity;
-            float newSpeed = currentVelocity.magnitude * (newMultiplier / speedMultiplier);
+
+            if (!hasBaseMovementSpeed && currentVelocity.sqrMagnitude > MinimumVelocitySqrMagnitude)
+            {
+                baseMovementSpeed = Mathf.Max(
+                    currentVelocity.magnitude / speedMultiplier,
+                    MinimumBaseMovementSpeed);
+                hasBaseMovementSpeed = true;
+            }
+
             Vector2 currentDirection = currentVelocity.sqrMagnitude > 0.001f
                 ? currentVelocity.normalized
-                : Random.insideUnitCircle.normalized;
+                : lastMovementDirection;
             Vector2 directionToCenter = arenaCenter - (Vector2)transform.position;
 
             if (directionToCenter.sqrMagnitude > 4f)
@@ -67,7 +102,11 @@ public class Stone : MonoBehaviour
                     Random.Range(-20f, 20f)) * currentDirection;
             }
 
-            rb.linearVelocity = currentDirection * Mathf.Max(newSpeed, newMultiplier);
+            lastMovementDirection = currentDirection;
+            float targetSpeed = hasBaseMovementSpeed
+                ? baseMovementSpeed * newMultiplier
+                : newMultiplier;
+            rb.linearVelocity = currentDirection * targetSpeed;
             rb.WakeUp();
         }
 
