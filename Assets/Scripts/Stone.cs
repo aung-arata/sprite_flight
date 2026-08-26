@@ -8,6 +8,7 @@ public class Stone : MonoBehaviour
     public float maxSpeed = 150f;
     public float maxSpinSpeed = 10f;
     Rigidbody2D rb;
+    private float speedMultiplier = 1f;
 
     public GameObject bounceEffectPrefab;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -39,5 +40,17 @@ public class Stone : MonoBehaviour
 
         // Destroy the effect after 1 second
         Destroy(bounceEffect, 1f);
+    }
+
+    public void SetSpeedMultiplier(float newMultiplier)
+    {
+        newMultiplier = Mathf.Max(1f, newMultiplier);
+
+        if (rb != null && speedMultiplier > 0f)
+        {
+            rb.linearVelocity *= newMultiplier / speedMultiplier;
+        }
+
+        speedMultiplier = newMultiplier;
     }
 }

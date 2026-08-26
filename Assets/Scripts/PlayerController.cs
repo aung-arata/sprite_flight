@@ -13,6 +13,12 @@ public class PlayerController : MonoBehaviour
     private float score = 0f;
     public float scoreMultiplier = 10f;
 
+    [Header("Difficulty")]
+    [Min(1f)] public float difficultyInterval = 15f;
+    [Min(0f)] public float speedIncreasePerStage = 0.1f;
+    [Min(1f)] public float maxAsteroidSpeedMultiplier = 1.6f;
+    [Min(0f)] public float difficultyMessageDuration = 1.25f;
+
     Rigidbody2D rb;
     public GameObject boosterFlame;
     public UIDocument uiDocument;
@@ -21,6 +27,7 @@ public class PlayerController : MonoBehaviour
     private Label finalScoreText;
     private Label bestScoreText;
     private Label newBestText;
+    private Label difficultyText;
     private VisualElement gameOverPanel;
 
     public GameObject explosionEffect;
@@ -29,6 +36,9 @@ public class PlayerController : MonoBehaviour
     private bool isGameOver;
     private bool restartInputArmed;
     private bool isReloading;
+    private int difficultyStage;
+    private float asteroidSpeedMultiplier = 1f;
+    private Coroutine difficultyMessageCoroutine;
 
     private const string BestScoreKey = "BestScore";
     private const float ScreenShakeDuration = 0.25f;
@@ -49,6 +59,7 @@ public class PlayerController : MonoBehaviour
         }
 
         UpdateScore();
+        UpdateDifficulty();
         MovePlayer();
     }
 
@@ -85,6 +96,7 @@ public class PlayerController : MonoBehaviour
         finalScoreText = uiDocument.rootVisualElement.Q<Label>("FinalScoreLabel");
         bestScoreText = uiDocument.rootVisualElement.Q<Label>("BestScoreLabel");
         newBestText = uiDocument.rootVisualElement.Q<Label>("NewBestLabel");
+        difficultyText = uiDocument.rootVisualElement.Q<Label>("DifficultyLabel");
         gameOverPanel = uiDocument.rootVisualElement.Q<VisualElement>("GameOverPanel");
         restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
         gameOverPanel.style.display = DisplayStyle.None;
@@ -95,6 +107,52 @@ public class PlayerController : MonoBehaviour
         mainCamera = Camera.main;
         CacheArenaBorders();
         UpdateCameraForScreen();
+    }
+
+    void UpdateDifficulty()
+    {
+        if (difficultyInterval <= 0f)
+        {
+            return;
+        }
+
+        int newStage = Mathf.FloorToInt(elapsedTime / difficultyInterval);
+        if (newStage <= difficultyStage)
+        {
+            return;
+        }
+
+        difficultyStage = newStage;
+        float newMultiplier = Mathf.Min(
+            1f + difficultyStage * speedIncreasePerStage,
+            Mathf.Max(1f, maxAsteroidSpeedMultiplier));
+
+        if (newMultiplier <= asteroidSpeedMultiplier)
+        {
+            return;
+        }
+
+        asteroidSpeedMultiplier = newMultiplier;
+
+        foreach (Stone stone in FindObjectsByType<Stone>(FindObjectsSortMode.None))
+        {
+            stone.SetSpeedMultiplier(asteroidSpeedMultiplier);
+        }
+
+        if (difficultyMessageCoroutine != null)
+        {
+            StopCoroutine(difficultyMessageCoroutine);
+        }
+
+        difficultyMessageCoroutine = StartCoroutine(ShowDifficultyMessage());
+    }
+
+    IEnumerator ShowDifficultyMessage()
+    {
+        difficultyText.style.display = DisplayStyle.Flex;
+        yield return new WaitForSeconds(difficultyMessageDuration);
+        difficultyText.style.display = DisplayStyle.None;
+        difficultyMessageCoroutine = null;
     }
 
     void CacheArenaBorders()
@@ -262,6 +320,7 @@ public class PlayerController : MonoBehaviour
         bestScoreText.text = $"Best: {bestScore}";
         newBestText.style.display = achievedNewBest ? DisplayStyle.Flex : DisplayStyle.None;
         gameOverPanel.style.display = DisplayStyle.Flex;
+        difficultyText.style.display = DisplayStyle.None;
 
         restartInputArmed = !IsPointerPressed();
 
