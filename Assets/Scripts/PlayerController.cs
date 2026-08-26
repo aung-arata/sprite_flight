@@ -41,6 +41,15 @@ public class PlayerController : MonoBehaviour
     private int lastScreenWidth;
     private int lastScreenHeight;
 
+    private Transform borderLeft;
+    private Transform borderRight;
+    private Transform borderTop;
+    private Transform borderBottom;
+    private Vector3 borderLeftBaseScale;
+    private Vector3 borderRightBaseScale;
+    private Vector3 borderTopBaseScale;
+    private Vector3 borderBottomBaseScale;
+
     private const float ReferenceAspect = 16f / 9f;
     private const float ReferenceOrthographicSize = 7f;
 
@@ -56,7 +65,42 @@ public class PlayerController : MonoBehaviour
         
         // Cache camera reference
         mainCamera = Camera.main;
+        CacheArenaBorders();
         UpdateCameraForScreen();
+    }
+
+    void CacheArenaBorders()
+    {
+        borderLeft = FindTransform("Border_Left");
+        borderRight = FindTransform("Border_Right");
+        borderTop = FindTransform("Border_Top");
+        borderBottom = FindTransform("Border_Bottom");
+
+        if (borderLeft != null)
+        {
+            borderLeftBaseScale = borderLeft.localScale;
+        }
+
+        if (borderRight != null)
+        {
+            borderRightBaseScale = borderRight.localScale;
+        }
+
+        if (borderTop != null)
+        {
+            borderTopBaseScale = borderTop.localScale;
+        }
+
+        if (borderBottom != null)
+        {
+            borderBottomBaseScale = borderBottom.localScale;
+        }
+    }
+
+    static Transform FindTransform(string objectName)
+    {
+        GameObject foundObject = GameObject.Find(objectName);
+        return foundObject != null ? foundObject.transform : null;
     }
 
     void UpdateCameraForScreen()
@@ -73,6 +117,42 @@ public class PlayerController : MonoBehaviour
         mainCamera.orthographicSize = currentAspect < ReferenceAspect
             ? ReferenceOrthographicSize * (ReferenceAspect / currentAspect)
             : ReferenceOrthographicSize;
+
+        UpdateArenaForCamera(currentAspect);
+    }
+
+    void UpdateArenaForCamera(float currentAspect)
+    {
+        if (borderLeft == null || borderRight == null || borderTop == null || borderBottom == null)
+        {
+            return;
+        }
+
+        Vector3 cameraPosition = mainCamera.transform.position;
+        float halfHeight = mainCamera.orthographicSize;
+        float halfWidth = halfHeight * currentAspect;
+
+        borderLeft.position = new Vector3(cameraPosition.x - halfWidth, cameraPosition.y, borderLeft.position.z);
+        borderRight.position = new Vector3(cameraPosition.x + halfWidth, cameraPosition.y, borderRight.position.z);
+        borderTop.position = new Vector3(cameraPosition.x, cameraPosition.y + halfHeight, borderTop.position.z);
+        borderBottom.position = new Vector3(cameraPosition.x, cameraPosition.y - halfHeight, borderBottom.position.z);
+
+        borderLeft.localScale = new Vector3(
+            borderLeftBaseScale.x,
+            halfHeight * 2f + borderTopBaseScale.y,
+            borderLeftBaseScale.z);
+        borderRight.localScale = new Vector3(
+            borderRightBaseScale.x,
+            halfHeight * 2f + borderBottomBaseScale.y,
+            borderRightBaseScale.z);
+        borderTop.localScale = new Vector3(
+            halfWidth * 2f + borderLeftBaseScale.x,
+            borderTopBaseScale.y,
+            borderTopBaseScale.z);
+        borderBottom.localScale = new Vector3(
+            halfWidth * 2f + borderRightBaseScale.x,
+            borderBottomBaseScale.y,
+            borderBottomBaseScale.z);
     }
 
     void MovePlayer() {
