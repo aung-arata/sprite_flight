@@ -292,7 +292,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!restartInputArmed)
         {
-            restartInputArmed = WasPointerReleasedThisFrame() || !IsPointerPressed();
+            restartInputArmed = !IsPointerPressed();
         }
 
         if (restartInputArmed && WasPointerPressedThisFrame())
@@ -349,13 +349,6 @@ public class PlayerController : MonoBehaviour
         bool mousePressed = IsMouseAvailable() && Mouse.current.leftButton.wasPressedThisFrame;
         bool touchPressed = IsTouchscreenAvailable() && Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
         return mousePressed || touchPressed;
-    }
-
-    static bool WasPointerReleasedThisFrame()
-    {
-        bool mouseReleased = IsMouseAvailable() && Mouse.current.leftButton.wasReleasedThisFrame;
-        bool touchReleased = IsTouchscreenAvailable() && Touchscreen.current.primaryTouch.press.wasReleasedThisFrame;
-        return mouseReleased || touchReleased;
     }
 
     IEnumerator ShakeCamera()
