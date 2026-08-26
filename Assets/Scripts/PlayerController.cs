@@ -290,10 +290,9 @@ public class PlayerController : MonoBehaviour
 
     void HandleRestartInput()
     {
-        if (!IsPointerPressed())
+        if (!restartInputArmed)
         {
-            restartInputArmed = true;
-            return;
+            restartInputArmed = WasPointerReleasedThisFrame() || !IsPointerPressed();
         }
 
         if (restartInputArmed && WasPointerPressedThisFrame())
@@ -308,17 +307,13 @@ public class PlayerController : MonoBehaviour
 
         // Device Simulator disables the native mouse and provides a simulated
         // touchscreen, so touch must be checked before the mouse fallback.
-        if (Touchscreen.current != null &&
-            Touchscreen.current.enabled &&
-            Touchscreen.current.primaryTouch.press.isPressed)
+        if (IsTouchscreenAvailable() && Touchscreen.current.primaryTouch.press.isPressed)
         {
             screenPosition = Touchscreen.current.primaryTouch.position.ReadValue();
             return IsFinite(screenPosition.x) && IsFinite(screenPosition.y);
         }
 
-        if (Mouse.current != null &&
-            Mouse.current.enabled &&
-            Mouse.current.leftButton.isPressed)
+        if (IsMouseAvailable() && Mouse.current.leftButton.isPressed)
         {
             screenPosition = Mouse.current.position.ReadValue();
             return IsFinite(screenPosition.x) && IsFinite(screenPosition.y);
@@ -332,26 +327,35 @@ public class PlayerController : MonoBehaviour
         return !float.IsNaN(value) && !float.IsInfinity(value);
     }
 
+    static bool IsTouchscreenAvailable()
+    {
+        return Touchscreen.current != null && Touchscreen.current.enabled;
+    }
+
+    static bool IsMouseAvailable()
+    {
+        return Mouse.current != null && Mouse.current.enabled;
+    }
+
     static bool IsPointerPressed()
     {
-        bool mousePressed = Mouse.current != null &&
-            Mouse.current.enabled &&
-            Mouse.current.leftButton.isPressed;
-        bool touchPressed = Touchscreen.current != null &&
-            Touchscreen.current.enabled &&
-            Touchscreen.current.primaryTouch.press.isPressed;
+        bool mousePressed = IsMouseAvailable() && Mouse.current.leftButton.isPressed;
+        bool touchPressed = IsTouchscreenAvailable() && Touchscreen.current.primaryTouch.press.isPressed;
         return mousePressed || touchPressed;
     }
 
     static bool WasPointerPressedThisFrame()
     {
-        bool mousePressed = Mouse.current != null &&
-            Mouse.current.enabled &&
-            Mouse.current.leftButton.wasPressedThisFrame;
-        bool touchPressed = Touchscreen.current != null &&
-            Touchscreen.current.enabled &&
-            Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+        bool mousePressed = IsMouseAvailable() && Mouse.current.leftButton.wasPressedThisFrame;
+        bool touchPressed = IsTouchscreenAvailable() && Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
         return mousePressed || touchPressed;
+    }
+
+    static bool WasPointerReleasedThisFrame()
+    {
+        bool mouseReleased = IsMouseAvailable() && Mouse.current.leftButton.wasReleasedThisFrame;
+        bool touchReleased = IsTouchscreenAvailable() && Touchscreen.current.primaryTouch.press.wasReleasedThisFrame;
+        return mouseReleased || touchReleased;
     }
 
     IEnumerator ShakeCamera()
