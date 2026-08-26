@@ -15,8 +15,8 @@ public class PlayerController : MonoBehaviour
 
     [Header("Difficulty")]
     [Min(1f)] public float difficultyInterval = 15f;
-    [Min(0f)] public float asteroidSpeedIncreasePerStage = 0.25f;
-    [Min(1f)] public float asteroidSpeedLimit = 2f;
+    [Min(0f)] public float asteroidSpeedIncreasePerStage = 0.5f;
+    [Min(1f)] public float asteroidSpeedLimit = 3f;
     [Min(0f)] public float difficultyMessageDuration = 1.25f;
 
     Rigidbody2D rb;

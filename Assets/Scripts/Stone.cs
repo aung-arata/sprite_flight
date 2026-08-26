@@ -24,10 +24,16 @@ public class Stone : MonoBehaviour
         transform.localScale = new Vector3(randomSize, randomSize, 1);
 
         rb = GetComponent<Rigidbody2D>();
-        // float randomSpeed = Random.Range(minSpeed, maxSpeed);
-        float randomSpeed = Random.Range(minSpeed, maxSpeed) / randomSize;
+        float sizeRatio = Mathf.InverseLerp(minSize, maxSize, randomSize);
+        float launchForce = Mathf.Lerp(maxSpeed, minSpeed, sizeRatio);
         Vector2 randomDirection = Random.insideUnitCircle;
-        rb.AddForce(randomDirection * randomSpeed);
+
+        if (randomDirection.sqrMagnitude < MinimumVelocitySqrMagnitude)
+        {
+            randomDirection = Vector2.right;
+        }
+
+        rb.AddForce(randomDirection.normalized * launchForce);
 
         // float randomTorque = Random.Range(-maxSpinSpeed, maxSpinSpeed);
         // rb.AddTorque(randomTorque);

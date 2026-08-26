@@ -443,6 +443,10 @@ MonoBehaviour:
   thrustForce: 1
   maxSpeed: 5
   scoreMultiplier: 10
+  difficultyInterval: 15
+  asteroidSpeedIncreasePerStage: 0.5
+  asteroidSpeedLimit: 3
+  difficultyMessageDuration: 1.25
   boosterFlame: {fileID: 0}
   uiDocument: {fileID: 1456260883}
   explosionEffect: {fileID: 1942105496627612494, guid: 0a269465a2d7ed0418d330a18130a6ff, type: 3}
