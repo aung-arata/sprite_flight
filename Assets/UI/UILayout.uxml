@@ -1,5 +1,6 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:Label text="Score: 0" name="ScoreLabel" style="position: absolute; top: 20px; left: 0; right: 0; -unity-text-align: middle-center; -unity-font-style: bold; font-size: 20px; color: rgb(255, 250, 250);"/>
+    <ui:Label text="Speed Up!" name="DifficultyLabel" style="display: none; position: absolute; top: 64px; left: 0; right: 0; -unity-text-align: middle-center; -unity-font-style: bold; font-size: 24px; color: rgb(255, 210, 65);"/>
     <ui:VisualElement name="GameOverPanel" style="display: none; position: absolute; top: 0; right: 0; bottom: 0; left: 0; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.72);">
         <ui:Label text="Flight Over" style="margin-bottom: 14px; -unity-font-style: bold; font-size: 36px; color: rgb(255, 255, 255);"/>
         <ui:Label text="Score: 0" name="FinalScoreLabel" style="font-size: 24px; color: rgb(255, 255, 255);"/>
