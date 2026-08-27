@@ -132,7 +132,6 @@ public class PlayerController : MonoBehaviour
         pausePanel.style.display = DisplayStyle.None;
 
         restartButton.clicked += ReloadScene;
-        pauseButton.clicked += PauseGame;
         pauseButton.RegisterCallback<PointerDownEvent>(HandlePausePointerDown);
         resumeButton.clicked += ResumeGame;
         pauseRestartButton.clicked += ReloadScene;
@@ -546,7 +545,6 @@ public class PlayerController : MonoBehaviour
 
         if (pauseButton != null)
         {
-            pauseButton.clicked -= PauseGame;
             pauseButton.UnregisterCallback<PointerDownEvent>(HandlePausePointerDown);
         }
 
