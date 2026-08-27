@@ -35,6 +35,14 @@ public class Stone : MonoBehaviour
 
         rb.AddForce(randomDirection.normalized * launchForce);
 
+        PlayerController difficultyController = FindFirstObjectByType<PlayerController>();
+        if (difficultyController != null && difficultyController.CurrentAsteroidSpeedMultiplier > 1f)
+        {
+            SetSpeedMultiplier(
+                difficultyController.CurrentAsteroidSpeedMultiplier,
+                difficultyController.ArenaCenter);
+        }
+
         // float randomTorque = Random.Range(-maxSpinSpeed, maxSpinSpeed);
         // rb.AddTorque(randomTorque);
     }
@@ -50,14 +58,7 @@ public class Stone : MonoBehaviour
         if (currentVelocity.sqrMagnitude > MinimumVelocitySqrMagnitude)
         {
             lastMovementDirection = currentVelocity.normalized;
-
-            if (!hasBaseMovementSpeed)
-            {
-                baseMovementSpeed = Mathf.Max(
-                    currentVelocity.magnitude / speedMultiplier,
-                    MinimumBaseMovementSpeed);
-                hasBaseMovementSpeed = true;
-            }
+            TryCaptureBaseMovementSpeed(currentVelocity);
         }
 
         if (hasBaseMovementSpeed)
@@ -79,43 +80,49 @@ public class Stone : MonoBehaviour
     {
         newMultiplier = Mathf.Max(1f, newMultiplier);
 
-        if (rb != null && speedMultiplier > 0f)
+        if (rb != null)
         {
             Vector2 currentVelocity = rb.linearVelocity;
+            TryCaptureBaseMovementSpeed(currentVelocity);
 
-            if (!hasBaseMovementSpeed && currentVelocity.sqrMagnitude > MinimumVelocitySqrMagnitude)
+            if (hasBaseMovementSpeed)
             {
-                baseMovementSpeed = Mathf.Max(
-                    currentVelocity.magnitude / speedMultiplier,
-                    MinimumBaseMovementSpeed);
-                hasBaseMovementSpeed = true;
+                Vector2 currentDirection = currentVelocity.sqrMagnitude > MinimumVelocitySqrMagnitude
+                    ? currentVelocity.normalized
+                    : lastMovementDirection;
+                Vector2 directionToCenter = arenaCenter - (Vector2)transform.position;
+
+                if (directionToCenter.sqrMagnitude > 4f)
+                {
+                    currentDirection = Vector2.Lerp(
+                        currentDirection,
+                        directionToCenter.normalized,
+                        0.6f).normalized;
+                    currentDirection = Quaternion.Euler(
+                        0f,
+                        0f,
+                        Random.Range(-20f, 20f)) * currentDirection;
+                }
+
+                lastMovementDirection = currentDirection;
+                rb.linearVelocity = currentDirection * (baseMovementSpeed * newMultiplier);
+                rb.WakeUp();
             }
-
-            Vector2 currentDirection = currentVelocity.sqrMagnitude > 0.001f
-                ? currentVelocity.normalized
-                : lastMovementDirection;
-            Vector2 directionToCenter = arenaCenter - (Vector2)transform.position;
-
-            if (directionToCenter.sqrMagnitude > 4f)
-            {
-                currentDirection = Vector2.Lerp(
-                    currentDirection,
-                    directionToCenter.normalized,
-                    0.6f).normalized;
-                currentDirection = Quaternion.Euler(
-                    0f,
-                    0f,
-                    Random.Range(-20f, 20f)) * currentDirection;
-            }
-
-            lastMovementDirection = currentDirection;
-            float targetSpeed = hasBaseMovementSpeed
-                ? baseMovementSpeed * newMultiplier
-                : newMultiplier;
-            rb.linearVelocity = currentDirection * targetSpeed;
-            rb.WakeUp();
         }
 
         speedMultiplier = newMultiplier;
+    }
+
+    void TryCaptureBaseMovementSpeed(Vector2 currentVelocity)
+    {
+        if (hasBaseMovementSpeed || currentVelocity.sqrMagnitude <= MinimumVelocitySqrMagnitude)
+        {
+            return;
+        }
+
+        // Until this succeeds, a difficulty multiplier is pending but has not
+        // been applied, so the first real physics velocity is the base speed.
+        baseMovementSpeed = Mathf.Max(currentVelocity.magnitude, MinimumBaseMovementSpeed);
+        hasBaseMovementSpeed = true;
     }
 }

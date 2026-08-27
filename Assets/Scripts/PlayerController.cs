@@ -40,6 +40,11 @@ public class PlayerController : MonoBehaviour
     private float asteroidSpeedMultiplier = 1f;
     private Coroutine difficultyMessageCoroutine;
 
+    public float CurrentAsteroidSpeedMultiplier => asteroidSpeedMultiplier;
+    public Vector2 ArenaCenter => mainCamera != null
+        ? (Vector2)mainCamera.transform.position
+        : Vector2.zero;
+
     private const string BestScoreKey = "BestScore";
     private const float ScreenShakeDuration = 0.25f;
     private const float ScreenShakeMagnitude = 0.2f;
@@ -134,13 +139,9 @@ public class PlayerController : MonoBehaviour
 
         asteroidSpeedMultiplier = newMultiplier;
 
-        Vector2 arenaCenter = mainCamera != null
-            ? (Vector2)mainCamera.transform.position
-            : Vector2.zero;
-
         foreach (Stone stone in FindObjectsByType<Stone>(FindObjectsSortMode.None))
         {
-            stone.SetSpeedMultiplier(asteroidSpeedMultiplier, arenaCenter);
+            stone.SetSpeedMultiplier(asteroidSpeedMultiplier, ArenaCenter);
         }
 
         if (difficultyMessageCoroutine != null)
