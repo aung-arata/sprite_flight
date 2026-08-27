@@ -29,13 +29,21 @@ public class PlayerController : MonoBehaviour
     private Label newBestText;
     private Label difficultyText;
     private VisualElement gameOverPanel;
+    private VisualElement pausePanel;
 
     public GameObject explosionEffect;
     private Button restartButton;
+    private Button pauseButton;
+    private Button resumeButton;
+    private Button pauseRestartButton;
 
     private bool isGameOver;
+    private bool isPaused;
+    private bool isInitialized;
+    private bool movementInputArmed = true;
     private bool restartInputArmed;
     private bool isReloading;
+    private float timeScaleBeforePause = 1f;
     private int difficultyStage;
     private float asteroidSpeedMultiplier = 1f;
     private Coroutine difficultyMessageCoroutine;
@@ -57,6 +65,11 @@ public class PlayerController : MonoBehaviour
             UpdateCameraForScreen();
         }
 
+        if (isPaused)
+        {
+            return;
+        }
+
         if (isGameOver)
         {
             HandleRestartInput();
@@ -65,6 +78,13 @@ public class PlayerController : MonoBehaviour
 
         UpdateScore();
         UpdateDifficulty();
+
+        if (!movementInputArmed)
+        {
+            movementInputArmed = !IsPointerPressed();
+            return;
+        }
+
         MovePlayer();
     }
 
@@ -103,15 +123,79 @@ public class PlayerController : MonoBehaviour
         newBestText = uiDocument.rootVisualElement.Q<Label>("NewBestLabel");
         difficultyText = uiDocument.rootVisualElement.Q<Label>("DifficultyLabel");
         gameOverPanel = uiDocument.rootVisualElement.Q<VisualElement>("GameOverPanel");
+        pausePanel = uiDocument.rootVisualElement.Q<VisualElement>("PausePanel");
         restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
+        pauseButton = uiDocument.rootVisualElement.Q<Button>("PauseButton");
+        resumeButton = uiDocument.rootVisualElement.Q<Button>("ResumeButton");
+        pauseRestartButton = uiDocument.rootVisualElement.Q<Button>("PauseRestartButton");
         gameOverPanel.style.display = DisplayStyle.None;
+        pausePanel.style.display = DisplayStyle.None;
 
         restartButton.clicked += ReloadScene;
+        pauseButton.RegisterCallback<PointerDownEvent>(HandlePausePointerDown);
+        resumeButton.clicked += ResumeGame;
+        pauseRestartButton.clicked += ReloadScene;
         
         // Cache camera reference
         mainCamera = Camera.main;
         CacheArenaBorders();
         UpdateCameraForScreen();
+        isInitialized = true;
+    }
+
+    void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus && isInitialized)
+        {
+            PauseGame();
+        }
+    }
+
+    void OnApplicationPause(bool pauseStatus)
+    {
+        if (pauseStatus && isInitialized)
+        {
+            PauseGame();
+        }
+    }
+
+    void PauseGame()
+    {
+        if (isPaused || isGameOver || isReloading)
+        {
+            return;
+        }
+
+        isPaused = true;
+        timeScaleBeforePause = Time.timeScale > 0f ? Time.timeScale : 1f;
+        Time.timeScale = 0f;
+        pausePanel.style.display = DisplayStyle.Flex;
+        pauseButton.style.display = DisplayStyle.None;
+
+        if (boosterFlame != null)
+        {
+            boosterFlame.SetActive(false);
+        }
+    }
+
+    void HandlePausePointerDown(PointerDownEvent pointerEvent)
+    {
+        PauseGame();
+        pointerEvent.StopPropagation();
+    }
+
+    void ResumeGame()
+    {
+        if (!isPaused || isReloading)
+        {
+            return;
+        }
+
+        Time.timeScale = timeScaleBeforePause;
+        isPaused = false;
+        movementInputArmed = false;
+        pausePanel.style.display = DisplayStyle.None;
+        pauseButton.style.display = DisplayStyle.Flex;
     }
 
     void UpdateDifficulty()
@@ -327,6 +411,7 @@ public class PlayerController : MonoBehaviour
         newBestText.style.display = achievedNewBest ? DisplayStyle.Flex : DisplayStyle.None;
         gameOverPanel.style.display = DisplayStyle.Flex;
         difficultyText.style.display = DisplayStyle.None;
+        pauseButton.style.display = DisplayStyle.None;
 
         restartInputArmed = !IsPointerPressed();
 
@@ -446,6 +531,36 @@ public class PlayerController : MonoBehaviour
         }
 
         isReloading = true;
+        isPaused = false;
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    void OnDestroy()
+    {
+        if (restartButton != null)
+        {
+            restartButton.clicked -= ReloadScene;
+        }
+
+        if (pauseButton != null)
+        {
+            pauseButton.UnregisterCallback<PointerDownEvent>(HandlePausePointerDown);
+        }
+
+        if (resumeButton != null)
+        {
+            resumeButton.clicked -= ResumeGame;
+        }
+
+        if (pauseRestartButton != null)
+        {
+            pauseRestartButton.clicked -= ReloadScene;
+        }
+
+        if (isPaused)
+        {
+            Time.timeScale = timeScaleBeforePause;
+        }
     }
 }
