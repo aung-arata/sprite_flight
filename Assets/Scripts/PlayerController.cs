@@ -133,6 +133,7 @@ public class PlayerController : MonoBehaviour
 
         restartButton.clicked += ReloadScene;
         pauseButton.clicked += PauseGame;
+        pauseButton.RegisterCallback<PointerDownEvent>(HandlePausePointerDown);
         resumeButton.clicked += ResumeGame;
         pauseRestartButton.clicked += ReloadScene;
         
@@ -176,6 +177,12 @@ public class PlayerController : MonoBehaviour
         {
             boosterFlame.SetActive(false);
         }
+    }
+
+    void HandlePausePointerDown(PointerDownEvent pointerEvent)
+    {
+        PauseGame();
+        pointerEvent.StopPropagation();
     }
 
     void ResumeGame()
@@ -540,6 +547,7 @@ public class PlayerController : MonoBehaviour
         if (pauseButton != null)
         {
             pauseButton.clicked -= PauseGame;
+            pauseButton.UnregisterCallback<PointerDownEvent>(HandlePausePointerDown);
         }
 
         if (resumeButton != null)
